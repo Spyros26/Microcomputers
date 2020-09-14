@@ -1,0 +1,26 @@
+ORG 0800H
+IN 10H            ;access to every RAM memory address
+
+START: MVI B,00H
+LDA 2000H     ;Loads input from switches to reg A (address 2000H)
+
+CPI 00H     
+JZ LOOP1     	
+
+LOOP2: STA 0900H       
+INR B                  
+MOV A,B                
+RRC                    
+MOV B,A                
+LDA 0900H              
+RAL                    
+JC LOOP1               
+JMP LOOP2    
+
+LOOP1: MOV A,B     
+
+CMA     ; Complement value of A
+STA 3000H       ; pass the reg A with the complemented value to the output 
+JMP START           ; Jump back to label START
+
+END

@@ -1,0 +1,58 @@
+ORG 0800H
+
+IN 10H  ;access to any RAM memory addresses
+
+MVI H,09H   
+MVI L,00H   ; starting memory store address H-L = 0900H
+MVI D,00H
+MVI E,00H
+MVI A,FFH   ; reg A = 255 (decimal)
+MVI B,00H
+MVI C,00H   ; registers initial values
+
+START: MOV M,A     ;store A to Memory (regs H-L determine the address)
+ROLL: RLC          
+JNC ZERO           
+TEST: INR B        
+STA 0A00H          
+MOV A,B            
+CPI 08H            ; compare reg A (containing value of B) with 08H
+JZ LOOP2           ;if A=08H it means we have checked every bit of the initial value of
+                   ;A searching for the 0s and we jump to label LOOP2
+MOV B,A            
+LDA 0A00H          
+JMP ROLL           
+
+LOOP2: LDA 0A00H     
+CPI 00H              ;check if reg A = 0 (decimal)
+JZ FIN               ;if yes jump to label FIN
+MVI B,00H            ;reg B=00H, preparing to check the next number for 0s
+CPI 71H              ;compare A with 71H
+JC CHECK2            ;if A<71H jump to label CHECK2
+
+
+LOOP1: INR L         
+DCR A                
+JMP START            
+
+FIN: RST 1           
+
+ZERO: STA 0A00H      
+MOV A,E              ;
+CPI FFH              ;compare A to FFH
+JNZ UPPER            ;if A!=FFH then jump to label UPPER
+INR D                ;else reg D needs to be increased
+UPPER: MOV E,A       
+LDA 0A00H            
+INR E                
+JMP TEST             
+
+CHECK2: CPI 20H     ;compare A with 20H
+JNC ADDER           ;if A>20H jump to label ADDER
+JMP LOOP1           ;jump to label LOOP1
+
+ADDER: INR C        
+JMP LOOP1           
+
+END
+
