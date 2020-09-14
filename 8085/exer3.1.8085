@@ -1,0 +1,115 @@
+;In our computers the speed of the simulation is greater than the speed of microlab
+;So, in order to observe the simulation as intended you can move the little
+;blue arrow on the middle-top side of the screen at the middle point of the bar.
+
+	ORG 0800H
+START:	
+	IN 10H			;remove memory protection
+	LXI H,0A02H		;load HL with the start of the memory 
+				;I will store the output byte
+	MVI M,10H		;10H means print nothing
+	INX H			
+	MVI M,10H		
+	INX H				
+	MVI M,10H		;0A02H to 0A05 to have code 10H, to 
+	INX H			;print nothing.
+	MVI M,10H
+
+	MVI A,0DH		;0DH = 00001101. Enable interrupts (EI is
+	SIM			;the 4th LSB bit) and disable RST5.5 & 7.5	
+	EI
+
+WAIT:				;infinite loop-wait for interrupts
+	JMP WAIT	
+
+QUARTERSECLOOP:		;0.25 sec delay routine
+				;no need to push anything to the stack as nothing gets changed		
+	CALL DCD		;print
+	CALL DELB		;and delay for 250 msec
+	DCR A
+	CPI 00H
+	JNZ QUARTERSECLOOP
+	RET
+
+LIGHTS_ON:			;turn ON the lights and return
+	MVI A,FFH
+	CMA
+	STA 3000H
+	RET
+
+LIGHTS_OFF:			;turn OFF the lights and return
+	MVI A,00H
+	CMA
+	STA 3000H		
+	RET
+
+;ROUTINE-TO-CONVERT-HEX-TO-BCD-AND-DISPLAY-IT
+BCD:
+	PUSH PSW
+	PUSH B
+	PUSH D
+	PUSH H	
+		
+	MVI B,FFH 		;B<--FF
+	MOV A,E
+DECA:
+	INR B 			;increment B, counts decades
+ 	SUI 0AH 		;A - 10(10), decrement by one decade
+	JNC DECA 		;if CY flag is not zero continue to subtract
+				
+	ADI 0AH 		;a negative number has a positive carry
+				;correct the negative result of subtraction
+	LXI H,0A00H
+	MOV M,A 		;store units in 1st digit of LCD
+				
+	INX H		
+	MOV M,B		;store decades in 2nd digit of LCD
+
+	LXI D,0A00H		;move the block 0A00...0A05 to 
+	CALL STDM		;memory, where DCD routine reads
+
+	CALL LIGHTS_ON	;lights ON
+	
+	LXI B,0019H		;BC = 25 ---> DELB 25 msec delay
+	MVI A,0AH		;A = 10 --> 25 msec X 10 = 0.25 sec delay
+	CALL QUARTERSECLOOP
+
+	CALL LIGHTS_OFF	;lights OFF
+
+	MVI A,0AH		
+	CALL QUARTERSECLOOP
+
+	CALL LIGHTS_ON	;lights ON
+	
+	LXI B,0019H		
+	MVI A,0AH		
+	CALL QUARTERSECLOOP
+
+	CALL LIGHTS_OFF	;lights OFF
+
+	MVI A,0AH		
+	CALL QUARTERSECLOOP
+		
+	POP H 		
+	POP D
+	POP B
+	POP PSW
+	EI
+	RET
+
+;INTERRUPT-SERVICE-ROUTINE
+INTR_ROUTINE:			;this is the interrupt service routine
+	POP H			;pop PC from stack, absense of RET command
+	
+	MVI E,3CH		;60sec counter
+	EI
+LOOP1:		
+	CALL BCD		;convert to BCD and display
+	DCR E			;decrement loop counter, E--
+	MOV A,E
+	CPI 00H
+	JNZ LOOP1		;repeate for 60 seconds
+
+	
+	JMP WAIT
+END

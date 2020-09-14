@@ -1,0 +1,53 @@
+ORG 0800H
+IN 10H      ;access to every RAM memory address
+
+MVI B,06H
+MVI C,04H   ;determine the DELB routine delay for the lights to be on or off from the 
+            ;regs B-C.
+
+MVI D,00H           
+LOOP1: LDA 2000H    ;load switches to reg A
+ANI 01H             ;make every switch passive, except the LSB one
+CPI 01H             ; check if LSB switch is ON 		
+JZ LIGHTS           ;if yes then jump to label LIGHTS
+INR D               
+MOV A,D             
+CPI 03H             ; check if A=03H
+JZ SET              ;if yes go to label SET
+MOV D,A             ;else move value of A back to D
+ 
+LOOP2: LDA 2000H    ;load switches to reg A
+ANI 01H             ;make every switch passive, except the LSB one
+CPI 01H             ;check again if LSB switch is ON
+JNZ LIGHTS          ;if no then go to label LIGHTS
+INR D               
+JMP LOOP1           
+
+SET: MVI D,00H      ;value of D=00H again, because the combination of the LSB switch has
+                    ;been made     
+MVI A,32H           ;A = 32H so that lights go ON and OFF for ~15 seconds (taking
+                    ;account the values of B-C of DELB routine
+JMP PERF            
+
+LIGHTS: MOV A,E     
+CPI 00H
+JZ CHECK
+
+PERF: MOV E,A       
+MVI A,00H           
+STA 3000H           ;store 00H to lights output (all ON now)
+CALL DELB           ;delay from DELB
+MVI A,FFH           ;A=FFH
+STA 3000H           ;store FFH to lights output (all OFF now)
+CALL DELB           ;delay from DELB
+DCR E                           
+
+CHECK: MOV A,D      
+CPI 01H
+JZ LOOP2
+JMP LOOP1           ;go to the right LOOP depending on the value of D, to check if the
+                    ;LSB switch combination has been made again and check if we should
+                    ;update the 15 seconds of the lights
+
+
+END

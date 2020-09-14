@@ -1,0 +1,84 @@
+ORG 0800H	;starts the programm at memory place 0800H
+IN 10H		
+
+
+LDA 2000H     ;reads input
+CMA		;adjusts for inverse logic of leds
+ANI 03H	;isolates the two switches we care for (optional)
+MVI B,01H	;[BC]=500 msec 
+MVI C,E8H
+MVI A,FEH
+STA 3000H     ;lights up the first led (in every case this led lights up first) 
+CALL DELB	;wait for 1/2 sec	
+RRC
+MOV D,A	;stores current state in D 
+
+
+
+LOOP1: LDA 2000H	;main loop
+CMA
+ANI 03H		;isolates the two switches we care for (optional)
+RRC
+RRC
+
+JNC LSB2ON_CLEFT	;checks 2nd switch
+RLC
+RLC
+
+JC LSBOFF		;checks 1st switch
+RRC
+
+LEFT: MOV A,D		;left movement of the led until it runs to the MSB or there is an input change 
+RLC
+RLC
+JNC RIGHT		;go to RIGHT if we run to the MSB
+STA 3000H	
+CALL DELB		
+RRC
+MOV D,A		;stores current state in D 
+JMP LOOP1		;go to loop1 to check for input change
+
+LOOP2: LDA 2000H	;secondary loop
+CMA
+RRC
+RRC
+
+JNC LSB2ON_CRIGHT	;checks 2nd switch
+RLC
+RLC
+
+JC LSBOFF		;checks 1st switch
+
+
+RIGHT: MOV A,D	;right movement of led until we run to LSB or there is an input change
+RLC
+RRC
+JNC LEFT		;go to LEFT if we run to the LSB
+STA 3000H
+CALL DELB
+RRC
+MOV D,A		;stores current state in D
+JMP LOOP2		;go to loop2 to check for input change
+
+LSBOFF: MOV A,D	;left cyclical movement of the led 
+RLC
+RLC
+STA 3000H
+CALL DELB
+RRC
+MOV D,A		;stores current state in D
+JMP LOOP1		;go to loop1 to check for input change
+
+LSB2ON_CLEFT: XRA A	;2nd switch is ON and interrupts a left led movement
+INR A
+CMA
+STA 3000H
+JMP LOOP1		;go to loop1 to check for input change
+
+LSB2ON_CRIGHT: XRA A  ;2nd switch is ON and interrupts a right led movement
+INR A
+CMA
+STA 3000H
+JMP LOOP2		;go to loop2 to check for input change
+
+END			;end of programm

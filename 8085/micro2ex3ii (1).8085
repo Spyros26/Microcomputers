@@ -1,0 +1,44 @@
+ORG 0800H
+IN 10H          ;access to every RAM memory address
+
+MVI B,01H
+MVI C,F4H       ;define B-C for duration of DELB routine    
+
+START: MVI D,00H   
+MVI E,F0H          
+CALL KIND          
+
+CPI 00H            ;compare with 00H
+JZ START           ;if yes jump back to label START
+
+CPI 09H            ;else compare the button pushed with 09H
+JC CHECK1          ;if A<09H (Button pushed < 09H) go to label CHECK1
+JMP START          ;else jump back to START label
+
+CHECK1: CPI 05H    ;compare again, now with 05H
+JC LSB              ;if A<05H go to label LSB
+
+LIGHTS: STA 0900H    ;else 05H <= A <= 08H / store A temporarily to 0900H
+MVI A,0FH           ;A = 0FH (reverse logic of lights output)
+STA 3000H           ;store A to lights for the right output
+CALL DELB           ;call delay DELB routine
+
+DARK: MVI A,FFH     ;A=FFH  
+STA 3000H           ;store A to lights output so that they go OFF 
+CALL DELB           
+INR D               
+MOV A,D             ;move D to reg A
+CPI 04H             ;compare A with 04H
+JZ START            ;if A=04H then we had our 4 repeats, so jump back
+MOV D,A             ;else move value of D back to D
+LDA 0900H           
+JMP CHECK1          
+
+LSB: STA 0900H      
+MVI A,F0H
+STA 3000H
+CALL DELB          ;same logic with the four lines of label LIGHTS so that we get the 
+                   ;right lights output according to the button pressed
+JMP DARK           ;jump to label DARK
+
+END
