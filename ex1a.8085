@@ -1,0 +1,20 @@
+ORG 0800H
+
+START: MVI B,01H
+LDA 2000H     ;Loads input from switches
+
+CPI 00H     ;Checks if input = 00H
+JZ LOOP1     ;If yes jump to label LOOP1, else continue	
+
+LOOP3: RAR     ;Right rotation with carry
+JC LOOP2     ;If carry is 1, then jump to label LOOP2, else continue
+
+INR B       ;reg B = B + 1
+JNZ LOOP3    ; Jump back to label LOOP3 if Z=0, else continue
+
+LOOP2: MOV A,B    ; Move value of reg B to reg A 
+
+LOOP1: CMA      ; Complement value of A
+STA 3000H       ; pass the reg A with the complemented value to the output 
+RST 1           ; Interrupt
+END
